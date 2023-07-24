@@ -137,90 +137,31 @@ public class BoxAiDemo {
             System.out.println(exception.getMessage());
         }
 
-        String body = "{"
-        .concat( "\"mode\": \"single_item_qa\"," )
-        .concat( "\"prompt\":" )
-        .concat( "\"" + prompt + "\"")
-        .concat( ",")
-        .concat( "\"items\": [")
-        .concat( "{")
-        .concat( "\"id\": " )
-        .concat( "\"" + fileId + "\",")
-        .concat( "\"type\": \"file\"" )
-        .concat(    "}")
-        .concat( "],")
-        .concat( "\"dialogue_history\": [ ],")
-        .concat( "\"config\": {")
-        .concat(    "\"is_streamed\": true")
-        .concat( "}")
-        .concat( "}");
-        log.info(body);
-        
-        try {
-            BoxAPIConnection api = new BoxAPIConnection(token);
-            URL boxAiUrl = new URL("https://api.box.com/2.0/ai/ask");
-            BoxAPIRequest req = new BoxAPIRequest(api, boxAiUrl, HttpMethod.POST);
-            req.setBody(body);
-            BoxAPIResponse res = req.send();
+        BoxAiRequest request = new BoxAiRequest();
 
-            InputStream answerStream = res.getBody();
+        BoxAiDialogHistory history = new BoxAiDialogHistory();
+        BoxAiItem item = new BoxAiItem();
+        BoxAiItem[] items = new BoxAiItem[1];
+        BoxAiRequestConfig config = new BoxAiRequestConfig();
 
-            try {
-                InputStreamReader reader = new InputStreamReader(answerStream, UTF_8);
-                StringBuilder builder = new StringBuilder();
-                char[] buffer = new char[1024];
+        item.setType("file");
+        item.setId(fileId);
 
-                int read = reader.read(buffer, 0, 1024);
-                while (read != -1) {
-                    builder.append(buffer, 0, read);
-                    read = reader.read(buffer, 0, 1024);
-                    
-                    System.out.print(builder.toString());
-                }
+        items[0] = item;
 
-                reader.close();
-                answer = builder.toString();
+        config.setIsStreamed(false);
 
-                answerJson = new JSONArray(answer);
+        request.setMode("single_item_qa");
+        request.setPrompt(prompt);
+        request.setItems(items);
+        request.setConfig(config);
 
-                //answer = res.bodyToString();
+        BoxAiService service = new BoxAiService(token);
 
-            
-                /*ByteArrayOutputStream result = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                for (int length; (length = answerStream.read(buffer)) != -1; ) {
-                    result.write(buffer, 0, length);
-                }
+        BoxAiResponse response = service.send(request);
 
-                answer = result.toString("UTF-8");
+        log.info("BoxAIResponse string is " + response.getAnswer());
 
-                //answerJson = new JSONArray("[" + answer + "]");
+	}
 
-                BufferedReader bufferedReader = new BufferedReader(new StringReader(answer));
-
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    sb.append(line);
-                }
-
-                answerJson = new JSONObject(sb.toString()); 
-                
-                
-                //BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(answerStream));
-                //*/
-                
-            } catch(Exception e) {
-                // if any I/O error occurs
-                e.printStackTrace();
-            } //finally {
-                // releases system resources associated with this stream
-            //    if(answerStream!=null)
-            //    answerStream.close();
-            //}
-
-        } catch (Exception e) {
-            log.info("Error processing: " + e.toString());
-        }
-    }
 }
